@@ -35,7 +35,7 @@ def main():
         return
 
     # List of Recipients
-    addr_to = ['dpn.toe@gmail.com', 'haoqle@yahoo.com', '5038410916@tmomail.net', '9713345742@txt.att.net']
+    addr_to = ['your emails']
 
     # List of the liquor to be searched
     item_list = [
@@ -192,7 +192,7 @@ def send_SMS(message, recipients):
             server.starttls()                                           # Start TLS encryption for the connection
 
             # Log in to the email account. Replace these with secure credentials
-            server.login('dtoe07@gmail.com', 'tkbbswgpmhvmhzng')
+            server.login('email', 'password')
 
             # Create the email message
             msg = MIMEMultipart()
