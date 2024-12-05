@@ -35,7 +35,7 @@ def main():
         return
 
     # List of Recipients
-    addr_to = ['your emails']
+    addr_to = ['RECIPIENTS-EMAILS-HERE']
 
     # List of the liquor to be searched
     item_list = [
@@ -192,11 +192,11 @@ def send_SMS(message, recipients):
             server.starttls()                                           # Start TLS encryption for the connection
 
             # Log in to the email account. Replace these with secure credentials
-            server.login('email', 'password')
+            server.login('YOUR-EMAIL-HERE', 'PASSWORD-HERE')
 
             # Create the email message
             msg = MIMEMultipart()
-            msg['From'] = 'dtoe07@gmail.com'                            # Sender's email address
+            msg['From'] = 'YOUR-EMAIL-HERE'                            # Sender's email address
             msg['To'] = ", ".join(recipients)                           # Recipient list
             msg['Subject'] = 'dToe Liquor Availability Update'          # Email subject
             msg.attach(MIMEText(message, 'plain'))                      # Attach the message as plain text
