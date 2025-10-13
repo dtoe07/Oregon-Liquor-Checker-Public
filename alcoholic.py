@@ -3,6 +3,7 @@
 # Author: Dinh Nguyen (dtoe07@gmail.com)
 # Date Created: January 7, 2021
 
+import os
 import requests
 from bs4 import BeautifulSoup
 import time
@@ -13,9 +14,12 @@ import random
 from random import randint
 import datetime
 
+# Load environment variables for email credentials
+login_email = os.getenv("LOGIN_EMAIL")
+access_token = os.getenv("ACCESS_TOKEN")
 
 def main():
-    # Browser User Agents to randomize browswer for the bot
+    # Browser User Agents to randomize browser for the bot
     user_agent_list = [
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
@@ -35,13 +39,15 @@ def main():
         return
 
     # List of Recipients
-    addr_to = ['RECIPIENTS-EMAILS-HERE']
+    addr_to = ['your_email_here@gmail.com', 'your_email_here@yahoo.com'] # Add more emails or phone numbers here
 
     # List of the liquor to be searched
     item_list = [
         ('8722B', 'Red Weller'),
         ('8954B', 'Green Weller'),
         ('1562B', 'W.L. WELLER 12YR KENTUCKY STRAIGHT BRBN'),
+        ('6374B', 'WELLER FULL PROOF'),
+        ('11941B', 'WELLER FULL PROOF SINGLE BARREL SELECT'),
 
         ('8119B', 'SUNTORY HIBIKI 12YR'),
         ('7634B', 'SUNTORY YAMAZAKI 18 YR'),
@@ -78,7 +84,11 @@ def main():
         message = search_liquor(session, code, name)    # Get message from searching each liquor
         if message != 'None':
             email_body += message                       # Appending the result if stock is found
-        time.sleep(randint(20, 40))                     # Randomly pause the bot after every search to simulate human-like behavior
+            # also append the message to the log file
+            log_message(message)
+        else:
+            log_message(f"No stock found for item: {name}")
+        time.sleep(randint(15, 30))                     # Randomly pause the bot after every search to simulate human-like behavior
 
     # Sending email/text with all the results
     send_SMS(email_body, addr_to)
@@ -192,11 +202,11 @@ def send_SMS(message, recipients):
             server.starttls()                                           # Start TLS encryption for the connection
 
             # Log in to the email account. Replace these with secure credentials
-            server.login('YOUR-EMAIL-HERE', 'PASSWORD-HERE')
+            server.login(login_email, access_token)
 
             # Create the email message
             msg = MIMEMultipart()
-            msg['From'] = 'YOUR-EMAIL-HERE'                            # Sender's email address
+            msg['From'] = login_email                            # Sender's email address
             msg['To'] = ", ".join(recipients)                           # Recipient list
             msg['Subject'] = 'dToe Liquor Availability Update'          # Email subject
             msg.attach(MIMEText(message, 'plain'))                      # Attach the message as plain text
@@ -212,7 +222,7 @@ def send_SMS(message, recipients):
 # Append the given message to a log file ===============================================================================
 def log_message(message):
     try:
-        with open("/home/python/logfile.txt", "a") as log_file:
+        with open("logfile.txt", "a") as log_file:
             log_file.write(f"{message}\n")                              # Write the message to the log file.
     except IOError as e:
         # Handle file input/output errors and print an error message
@@ -221,5 +231,5 @@ def log_message(message):
 
 if __name__ == "__main__":
     main()  # Entry point for the script. Calls the main function (not defined here).
-            # Fuction can be used without having to define before the call
+            # Methods can be used without having to define before the call
             # This helps pushing all functions to the end of the file for cleaner setup
