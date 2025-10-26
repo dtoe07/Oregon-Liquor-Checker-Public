@@ -12,21 +12,61 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import random
 from random import randint
+import re
 import datetime
+import folium
+from geopy.geocoders import Nominatim
 
 # Load environment variables for email credentials
 login_email = os.getenv("LOGIN_EMAIL")
 access_token = os.getenv("ACCESS_TOKEN")
 
+# List of Recipients
+addr_to = ['recipient-email-here', 'recipient-email-here'] # Add more emails or phone numbers here
+
+# List of url to the maps to be appended to the end of the email
+map_urls = []
+
+# List of the liquor to be searched
+item_list = [
+    ('8722B', 'Red Weller'),
+    ('8954B', 'Green Weller'),
+    ('1562B', 'W.L. WELLER 12YR KENTUCKY STRAIGHT BRBN'),
+    ('6374B', 'WELLER FULL PROOF'),
+    ('11941B', 'WELLER FULL PROOF SINGLE BARREL SELECT'),
+
+    ('8119B', 'SUNTORY HIBIKI 12YR'),
+    # ('7634B', 'SUNTORY YAMAZAKI 18 YR'),
+
+    ('0191B', 'Stagg JR.'),
+    ('2146B', "WOODFORD RES. MC BOURBON"),
+    ('3749B', "BLOOD OATH PACT VII"),
+    ('2893B', "HIGH WEST MIDWINTER"),
+    ('2657B ', "MICHTER'S TOASTED BARREL FINISH"),
+
+    ('0793B ', "E.H. TAYLOR SINGLE BARREL STRAIGHT BOURB"),
+    ('1416B ', "E.H. TAYLOR JR BARREL PROOF"),
+    ('1418B ', "E.H. TAYLOR STRAIGHT RYE WHISKEY"),
+
+    ('5830B', 'TEQUILA FORTALEZA BLANCO'),
+    ('5831B', 'TEQUILA FORTALEZA REPOSADO'),
+    ('5829B', 'TEQUILA FORTALEZA Anejo'),
+
+    ('2160B', 'EAGLE RARE S/B BOURBON')
+    # Add more items here...
+]
+
+# Browser User Agents to randomize browser for the bot
+user_agent_list = [
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:77.0) Gecko/20100101 Firefox/77.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
+]
+    
 def main():
-    # Browser User Agents to randomize browser for the bot
-    user_agent_list = [
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1.1 Safari/605.1.15',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:77.0) Gecko/20100101 Firefox/77.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36',
-    ]
+    # Set up a session with a random user-agent
     user_agent = random.choice(user_agent_list)
     session = requests.Session()
     session.headers.update({'User-Agent': user_agent})
@@ -37,37 +77,6 @@ def main():
     except requests.RequestException as e:
         print(f"Failed to establish session: {e}")
         return
-
-    # List of Recipients
-    addr_to = ['your_email_here@gmail.com', 'your_email_here@yahoo.com'] # Add more emails or phone numbers here
-
-    # List of the liquor to be searched
-    item_list = [
-        ('8722B', 'Red Weller'),
-        ('8954B', 'Green Weller'),
-        ('1562B', 'W.L. WELLER 12YR KENTUCKY STRAIGHT BRBN'),
-        ('6374B', 'WELLER FULL PROOF'),
-        ('11941B', 'WELLER FULL PROOF SINGLE BARREL SELECT'),
-
-        ('8119B', 'SUNTORY HIBIKI 12YR'),
-        ('7634B', 'SUNTORY YAMAZAKI 18 YR'),
-
-        ('0191B', 'Stagg JR.'),
-        ('2146B', "WOODFORD RES. MC BOURBON"),
-        ('3749B', "BLOOD OATH PACT VII"),
-        ('2893B', "HIGH WEST MIDWINTER"),
-        ('2657B ', "MICHTER'S TOASTED BARREL FINISH"),
-
-        ('0793B ', "E.H. TAYLOR SINGLE BARREL STRAIGHT BOURB"),
-        ('1416B ', "E.H. TAYLOR JR BARREL PROOF"),
-        ('1418B ', "E.H. TAYLOR STRAIGHT RYE WHISKEY"),
-
-        ('5830B', 'TEQUILA FORTALEZA BLANCO'),
-        ('5831B', 'TEQUILA FORTALEZA REPOSADO'),
-
-        ('2160B', 'EAGLE RARE S/B BOURBON')
-        # Add more items here...
-    ]
 
     # Randomize the liquor list
     random.shuffle(item_list)
@@ -90,11 +99,21 @@ def main():
             log_message(f"No stock found for item: {name}")
         time.sleep(randint(15, 30))                     # Randomly pause the bot after every search to simulate human-like behavior
 
+    # Append the map URLs to the message if any maps were created
+    if map_urls:
+        email_body += "\nMaps of Store Locations:\n"
+        for product_name, url in map_urls:
+            print(f"Appending map URL for {product_name}: {url}")
+            email_body += f"{product_name}: {url}\n"
+        map_urls.clear()
+
     # Sending email/text with all the results
     send_SMS(email_body, addr_to)
     # Add to the log file that the bot ran successfully
     log_message("Bot completed successfully.")
 
+# ======================================================================================================================
+# =========================== Functions Definitions ====================================================================
 
 # Search for liquor function ===========================================================================================
 def search_liquor(session, item_number, item_name):
@@ -103,7 +122,7 @@ def search_liquor(session, item_number, item_name):
         response = session.get(
             f"http://www.oregonliquorsearch.com/servlet/FrontController?"
             f"view=global&action=search&radiusSearchParam=30&productSearchParam={item_number}&"
-            f"locationSearchParam=97230&chkDefault=on&btnSearch=Search",
+            f"locationSearchParam=97015&chkDefault=on&btnSearch=Search",
             timeout=10  # Set a timeout for the request to avoid long delays
         )
         response.raise_for_status() # Raise an exception if the HTTP response indicates an error
@@ -140,16 +159,37 @@ def parse_multiple_stores(soup, result):
 
     # Extract the product description and format it.
     message += " ".join(soup.find("th", {"id": "product-desc"}).find("h2").text.split()) + '\n'
+    # Save this product description
+    product_description = soup.find("th", {"id": "product-desc"}).find("h2").text.strip()
+    # Search for code inside parentheses and store it separately
+    match = re.search(r'\(([^)]+)\)', product_description)
+    product_code = match.group(1) if match else "N/A"
+    # Variable to store all the addresses found
+    store_in_stock = []
+    # Look up product name from the item_list using the product code
+    for code, name in item_list:
+        if code == product_code:
+            product_name = name
+            break
 
     # Loop through each table row in the search result.
     for row in result.find_all("tr"):
         store_info = row.find_all("td") # Extract table data cells for the current row
+        
         if len(store_info) > 7:
             # If there are enough cells, extract and format store details
             quantity = f"Quantity: {store_info[6].text}\n"  # Get the quantity of the product available
-            message += f"    - {store_info[2].text}\n"      # Add the store name
-            message += f"      {store_info[4].text}\n"      # Add the store location
+            message += f"    - {store_info[2].text}\n"      # Add the store address
+            store_in_stock.append(store_info[2].text)        # Append the store address to the list
+            message += f"      {store_info[4].text}\n"      # Add the store phone number
             message += f"      {quantity}\n"                # Add the quantity
+            
+    # Create a map with the store addresses found
+    if store_in_stock:
+        # Use product code to name the map file
+        create_map(store_in_stock, f"{product_code}_map.html")
+        # Append the new map URL to the global list with the url pattern: https://git-user-name.github.io/map-hosting/2160B_map.html with product name
+        map_urls.append((product_name, f"https://git-user-name.github.io/map-hosting/{product_code}_map.html"))
     return message      # Return the all results message
 
 
@@ -218,12 +258,51 @@ def send_SMS(message, recipients):
             # Handle any SMTP exceptions and print an error message.
             print(f"Failed to send email: {e}")
 
+# Create a map with given addresses and save as HTML ================================================================
+def create_map(addresses, output_file):
+    """Create a map with given addresses and save as HTML."""
+    
+    # Specify the city you want to center on
+    city_name = "Portland, OR"
+
+    geolocator = Nominatim(user_agent="map_app", timeout=10)
+    location = geolocator.geocode(city_name)
+
+    if location:
+        # Center the map on the city
+        m = folium.Map(location=[location.latitude, location.longitude], zoom_start=12)
+    else:
+        # Fallback to default coordinates if city not found
+        m = folium.Map(location=[37.7749, -122.4194], zoom_start=5)
+
+    for address in addresses:
+        try:
+            location = geolocator.geocode(address)
+            if location:
+                folium.Marker(
+                    [location.latitude, location.longitude],
+                    popup=address
+                ).add_to(m)
+                print(f"Added: {address}")
+            else:
+                print(f"Not found: {address}")
+        except Exception as e:
+            print(f"Error geocoding {address}: {e}")
+
+    # Make sure the 'maps' folder exists
+    os.makedirs("maps", exist_ok=True)
+    # Prepend the folder path
+    output_path = os.path.join("maps", output_file)
+    m.save(output_path)
+    print(f"Map saved as '{output_path}'")
+    
+    return output_path
 
 # Append the given message to a log file ===============================================================================
 def log_message(message):
     try:
         with open("logfile.txt", "a") as log_file:
-            log_file.write(f"{message}\n")                              # Write the message to the log file.
+            log_file.write(f"{message}\n")
     except IOError as e:
         # Handle file input/output errors and print an error message
         print(f"Logging error: {e}")
