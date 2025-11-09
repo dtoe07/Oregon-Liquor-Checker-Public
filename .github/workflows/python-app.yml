@@ -1,14 +1,20 @@
-name: Run alcoholic.py daily
+name: Run alcoholic.py Test for ZIP 97230
 
 on:
-  schedule:
-    # Every day at 8:00 AM UTC (change if needed for your time zone)
-    - cron: '0 15 * * *'  # 8 AM Los Angeles (PDT)
-  workflow_dispatch:  # allows manual runs
+  # schedule:
+  #   # Every day at 8:00 AM UTC (change if needed for your time zone)
+  #   - cron: "0 15 * * *" # 8 AM Los Angeles (PDT)
+  workflow_dispatch: # allows manual runs
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
+    env:
+      ZIP_CODE: "97230"
+      SEARCH_RADIUS: "10"
+      ADDR_TO_97015: ${{ vars.ADDR_TO_97015 }}
+      ADDR_TO_97223: ${{ vars.ADDR_TO_97223 }}
+      TEST_EMAIL: ${{ vars.TEST_EMAIL }}
 
     steps:
       - name: Check out repo
@@ -17,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'  # or whichever version you use
+          python-version: "3.11" # or whichever version you use
 
       - name: Install dependencies
         run: |
@@ -30,7 +36,7 @@ jobs:
           LOGIN_EMAIL: ${{ secrets.LOGIN_EMAIL }}
           ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         run: |
-          python alcoholic.py
+          python alcoholic.py $ZIP_CODE $SEARCH_RADIUS
 
       # Upload logfile
       # Scroll to the bottom → Artifacts → alcohol_log → Download.
@@ -39,3 +45,14 @@ jobs:
         with:
           name: alcohol_log
           path: logfile.txt
+
+      # Deploy generated maps to public GitHub repo (your-github-id/map-hosting) with subfolder for different ZIP codes
+      - name: Deploy to public maps repo
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          personal_token: ${{ secrets.MAPS_TOKEN }}
+          external_repository: your-github-id/map-hosting
+          publish_branch: gh-pages
+          publish_dir: ./maps
+          destination_dir: ${{ env.ZIP_CODE }} # <-- this creates a subfolder for that ZIP
+          keep_files: true # keeps old ZIP folders
