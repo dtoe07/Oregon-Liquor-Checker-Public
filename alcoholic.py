@@ -1,5 +1,6 @@
 # Liquor Availability Bot Scraper for Oregon Liquor Stores
 # Purpose: Automates the search for specific liquor availability in Oregon liquor stores.
+# Author: dtoe07@gmail.com
 # Date Created: January 7, 2021
 
 import os
@@ -20,6 +21,9 @@ import argparse
 # Load environment variables for email credentials
 login_email = os.getenv("LOGIN_EMAIL")
 access_token = os.getenv("ACCESS_TOKEN")
+
+# GitHub ID
+github_id = "your-github-id"
 
 # Load recipient addresses from environment variables for zip 97015
 addr_to_97015 = [
@@ -228,7 +232,7 @@ def parse_multiple_stores(soup, result, item_number, item_name, zip_code="97015"
         map_urls.append(
             (
                 item_name,
-                f"https://your-github-id.github.io/map-hosting/{zip_code}/{item_number}_map.html",
+                f"https://{github_id}.github.io/map-hosting/{zip_code}/{item_number}_map.html",
             )
         )
 
@@ -319,20 +323,24 @@ def normalize_address(addr):
 
 
 # Create a map with given addresses and save as HTML. =================================================================
-def create_map(addresses, output_file, default_city="Portland, OR"):
+def create_map(
+    addresses, output_file, map_center="Portland, OR", default_state="Oregon, USA"
+):
     geolocator = Nominatim(user_agent="map_app", timeout=10)
 
-    # Center the map on the default city
-    city_location = geolocator.geocode(default_city)
-    if city_location:
+    # Center the map on Portland
+    center_location = geolocator.geocode(map_center)
+    if center_location:
         m = folium.Map(
-            location=[city_location.latitude, city_location.longitude], zoom_start=12
+            location=[center_location.latitude, center_location.longitude],
+            zoom_start=10,
         )
     else:
-        m = folium.Map(location=[37.7749, -122.4194], zoom_start=5)  # fallback
+        # fallback roughly in Oregon
+        m = folium.Map(location=[44.0, -120.5], zoom_start=7)
 
     for address in addresses:
-        full_address = f"{normalize_address(address)}, {default_city}"
+        full_address = f"{normalize_address(address)}, {default_state}"
         try:
             location = geolocator.geocode(full_address)
             if not location:
@@ -341,7 +349,7 @@ def create_map(addresses, output_file, default_city="Portland, OR"):
 
             if location:
                 folium.Marker(
-                    [location.latitude, location.longitude], popup=location.address
+                    [location.latitude, location.longitude], popup=full_address
                 ).add_to(m)
                 print(f"\t++ Added: {address} → Geocoded as: {location.address}")
             else:
