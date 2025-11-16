@@ -1,6 +1,5 @@
 # Liquor Availability Bot Scraper for Oregon Liquor Stores
 # Purpose: Automates the search for specific liquor availability in Oregon liquor stores.
-# Author: dtoe07@gmail.com
 # Date Created: January 7, 2021
 
 import os
@@ -12,7 +11,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import random
 from random import randint
-import re
 import datetime
 import folium
 from geopy.geocoders import Nominatim, ArcGIS
@@ -21,9 +19,6 @@ import argparse
 # Load environment variables for email credentials
 login_email = os.getenv("LOGIN_EMAIL")
 access_token = os.getenv("ACCESS_TOKEN")
-
-# GitHub ID
-github_id = "your-github-id"
 
 # Load recipient addresses from environment variables for zip 97015
 addr_to_97015 = [
@@ -66,6 +61,9 @@ item_list = [
     ("5831B", "TEQUILA FORTALEZA REPOSADO"),
     ("5829B", "TEQUILA FORTALEZA Anejo"),
     ("2160B", "EAGLE RARE S/B BOURBON"),
+    ("1059B", "HAKUSHU 12 YR"),
+    ("3560B", "HAKUSHU 18 YR"),
+    ("12876B", "WILD TURKEY 8 YR 101 BRBN"),
     # Add more items here...
 ]
 
@@ -199,15 +197,21 @@ def parse_multiple_stores(soup, result, item_number, item_name, zip_code="97015"
     # Start building the message with a separator line for clarity
     message = "-------------------------\n"
 
-    # Extract the product description and format it.
-    message += (
-        " ".join(soup.find("th", {"id": "product-desc"}).find("h2").text.split()) + "\n"
-    )
-    # Save this product description
-    product_description = (
-        soup.find("th", {"id": "product-desc"}).find("h2").text.strip()
-    )
+    # Extract product description
+    product_desc_tag = soup.find("th", {"id": "product-desc"}).find("h2")
+    product_description = " ".join(product_desc_tag.text.split())
 
+    # Extract bottle price
+    price_th = soup.find("th", string="Bottle Price:")
+    if price_th:
+        bottle_price = price_th.find_next("td").get_text(strip=True)
+    else:
+        bottle_price = "N/A"
+
+    # Add both to one line
+    message += f"{product_description}: {bottle_price}\n"
+
+    # List to hold store addresses with stock
     store_in_stock = []
     # Loop through each table row in the search result.
     for row in result.find_all("tr"):
@@ -232,7 +236,7 @@ def parse_multiple_stores(soup, result, item_number, item_name, zip_code="97015"
         map_urls.append(
             (
                 item_name,
-                f"https://{github_id}.github.io/map-hosting/{zip_code}/{item_number}_map.html",
+                f"https://your-git-user.github.io/map-hosting/{zip_code}/{item_number}_map.html",
             )
         )
 
@@ -245,9 +249,18 @@ def parse_single_store(soup, one_store):
     message = "-------------------------\n"
 
     # Extract and format the product description
-    message += (
-        " ".join(soup.find("th", {"id": "product-desc"}).find("h2").text.split()) + "\n"
-    )
+    product_desc_tag = soup.find("th", {"id": "product-desc"}).find("h2")
+    product_description = " ".join(product_desc_tag.text.split())
+
+    # Extract the bottle price
+    price_th = soup.find("th", string="Bottle Price:")
+    if price_th:
+        bottle_price = price_th.find_next("td").get_text(strip=True)
+    else:
+        bottle_price = "N/A"
+
+    # Add both to one line
+    message += f"{product_description}: {bottle_price}\n"
 
     # Extract the store address and other information
     store_info = one_store.find("td", {"id": "location-display"}).find_all("p")
